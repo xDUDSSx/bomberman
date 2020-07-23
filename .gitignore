@@ -1,0 +1,5 @@
+prohlaseni.txt
+*.o
+*.d
+doc/
+bomberman

@@ -1,0 +1,173 @@
+﻿Zadání úlohy z ProgTestu: -----------------------------------------------------------------------------
+
+Klasická hra Bomberman
+
+Implementujte následující varianty:
+
+pro alespoň 2 hráče na jednom počítači
+pro hru proti počítači
+
+Hra musí splňovat následující funkcionality:
+
+Načítání herních levelů (mapy) ze souboru (vytvořte vhodný formát)
+Sbírání konfigurovatelných bonusů (zvětšení plamenu, více bomb, odpalování bomb na dálku,...)
+Ukládání nejlepšího dosaženého skóre do souboru
+
+# Specifkace řešeného problému -------------------------------------------------------------------------
+
+Hru Bomberman jsem se rozhodl implementovat s pomocí knihovny SDL (Simple DirectMedia Layer), která mi
+poskytuje jednoduché a přehledné funkce jako například přijmání klávesnicového vstupu od uživatele a zejména
+hardwarově akcelerované vykreslování. Původně jsem přemýšlel o použití OpenGL k vykreslování ale po vyzkoušení
+vestavěného SDL_Rendereru jsem si uvědomil, že bohatě postačí a ušetří mi mnoho času.
+
+Hra se odehrává v obdélníkové herní ploše jejíž velikost je dána načtenou mapoou. Velikost okna se mapě přizpůsobí.
+Vše se ve hře vykresluje pouze v souřadnicích okna a tedy pomyslná kamera se nikdy nehýbá. Toto znamená že
+větší mapy vytvoří okno větší než monitor uživatele ale myslím, že to pro účely této hry není problém a díky
+tomu je vykreslování herních objektů jednodušší.
+
+Herní plocha se skládá ze čtvercových políček, které reprezentují buď prázdný prostor nebo nějakou zeď.
+I když je herní plocha rozdělená na políčka tak je pohyb všech herních objektů na políčkách nezávislý a je možný
+v 8 směrech v rámci celočíselného systému souřadnic.
+
+Hra podporuje hru jednoho nebo maximálně dvou hráčů dle nastavení. Více hráčů na stejné klávesnici asi není ideální.
+Celkově se na mapě mohou objevovat maximálně 4 tzv. bombermani. Bomberman je tedy buď hřáč nebo bomberman ovládaný počítačem.
+Hru tedy mohou hrát např 2 hráči a 2 počítače. Nebo 1 hráč a 3 počítače, nebo i počítače či hráči samotní.
+Tyto omezení plynou především z praktických důvodů než z omezení ze strany programování. (Malá klávesnice, jednodušší indikátor hráčů)
+
+# Mapa -------------------------------------------------------------------------------------------------
+
+Herní mapa i velikost okna hry se řídí jak již bylo zmíněno souborem mapy.
+Mapa se v souboru reprezentuje jako zjednodušená znaková reprezentace herní plochy.
+Jednotlivé znaky reprezentují různé typy herních objektů jako prázdný prostor, zeď, nezničitelná zeď, hráč či počítač.
+
+Pro hráče jsou v současné verzi vyhrazena písmena 'A' a 'B'
+
+Přiklad takové mapy s 2 hráči a 2 počítači:
+
+OOOOOOOOOOOOOOOOOOO
+OA--ooooooooooo--cO
+O-XoXoXoX-XoXoX-X-O
+O-oo-oooooooo-----O
+OoXoXoXoXoXoXoXoXoO
+Oooooo---oooooooooO
+OoXoXoXoX-XoXoXoXoO
+Ooooooooooooooo-ooO
+OoX-XoXoX-XoXoXoXoO
+Ooo-ooooo-o-----ooO
+OoXoXoXoXoXoXoXoXoO
+OoooooooooooooooooO
+O-XoXoXoX-XoXoXoXoO
+Oooooo-oo--oooooooO
+OoXoX-XoXoXoXoXoXoO
+O-ooooooo--oooooo-O
+O-X-XoXoXoXoXoXoX-O
+Oc--ooooooooooo--BO
+OOOOOOOOOOOOOOOOOOO
+
+- = prázdné pole
+X = nezničitelná zeď
+o = normální zeď
+A,B = hráč A a hráč B
+c = počítačem ovládaný bomberman
+
+Mapa musí tvořit obdélník, tedy musí splňovat následující podmínky:
+* Stejná délka jednotlivých řádků
+* Stejná výška sloupců
+
+(Na konci mapy může či nemusí být newline.)
+
+Důležité: Mapa by vždy měla mít kolem krajů nezničítelné okrajové zdi 'O'. Na toto se hra spoléhá a pokud bomberman vyjde z mapy program crashne!
+
+# Konfigurační soubor ----------------------------------------------------------------------------------
+
+Přesný počet hráčů se odvodí ze soubory mapy, který se na začátku hry načte.
+Hra nemá sofistikovanější grafické uživatelské rozhraní a proto se nastavení hry včetně specifikace
+soubor herní mapy nastavuje v konfiguračním souboru.
+Konfigurační soubor samotný se poté předá programu jako argument.
+
+Konfigurační soubor je velice jednoduchý se syntaxí: klíč=hodnota (hodnota by neměla obsahovat =) na každé řádce.
+Specifikuje se v něm cesta k souboru mapy:
+např.
+map=examples/classicDestroyedMap2p.txt
+
+Cesta k mapě je relativní od spustitelné binárky.
+
+Dále slouží k nastavení přezdívek hráčů. K charakteru v mapě (A,B) se přiřadí libovolně dlouhý řetězec. 
+Řetězec by však ideálně měl být v rozsahu 1 až 5 písmen pro přehledné zobrazení.
+
+např.
+A=Hrac1
+B=DAN
+
+Celý konfigurační soubor by pak byl:
+map=examples/classicDestroyedMap2p.txt
+A=Hrac1
+B=DAN
+
+
+# Obecné info ------------------------------------------------------------------------------------------
+
+Samotné principy hry jsou dle vzoru mé vágní paměti PvP módu nejspíš nějaké online bomberman hry.
+Hráč tedy hraje ze panáčka, který se nachází ve světě zdí. Panáček může pokládat omezený počet bomb, které zdi ničí.
+Cíl hry pomocí bomby zničit ostatní hráče/počítače.
+Zničená zeď může vytvořit pozitivní či negativní power-up, který panáček může sebrat a nějak ovlivnit svoje schopnosti.
+Samozřejmě v dalších fázích vývoje bude přidání dalších herních módů / cílů relativně triviální. Zde uvádím to základní
+co hra bude obsahovat.
+
+# Highscores  ------------------------------------------------------------------------------------------
+
+Skóre ze získává následovně
+
+zničení zdi								+10
+sebrání powerupu						+50 / -50
+požkození/zabití bombermana				+200
+požkození způsobené vlastní bombou 		-100
+
+Skóre hráče je identifikované jejich přezdívkou nastavené v konfiguračním souboru a poté uloženo do souboru highscores.
+Soubor highscores je na konci hry pouze upraven nikoli přepsán a je seřazen dle nejvyššího skóre.
+
+# Spuštění a ovládání hry ------------------------------------------------------------------------------
+
+Hráč A se ovládá WSAD a Space pro položení bomby
+Hráč B se ovládá šipkami a ENTER pro položení bomby.
+
+Konfigurační soubor lze předat programu jako jeden argument:
+<binárka> <cesta ke konfiguračnímu souboru>
+
+v tomto případě tedy např:
+rakusdan config.cfg
+
+Hra lze spustit i bez konfiguračního souboru. V tom případě se objeví základní čtvercová mapa s 2 hráči.
+
+Další klávesy:
+
+ESC - Vypne ihned hru
+F1 - zobrazí bounding boxy entity (mimo políčka mapy)
+F2 - zobrazí cesty realizované AI bombermany a také označí políčka, které AI považuje za nebezpečná.
+F3 - přepne debug flag, který vypisuje debug info do konzole
+F4 - přepne FPS na 12 z původních 60 FPS
+
+Ve složce /examples jsou ukázovké mapy a ukázkový konfigurační soubor
+
+# Memory leaks ----------------------------------------------------------------------------------------
+
+Knihovny SDL2 samy o sobě leakují paměť a při běhu valgrind se zobrazí šílená čísla i při jen základní inicializaci SDL bez čehokoli jiného.
+Valgrind mi nikdy nevypisoval úniky paměti přímo z mého kódu. Také stojí za zmínku že jsem celý projekt psal na Windows 10 s použitím Visual Studia 2017.
+
+Ve visual studiu jsem kontroloval leaky jednak microsofťáckou CRT library, způbsobem popsaným zde:
+https://docs.microsoft.com/en-us/visualstudio/debugger/finding-memory-leaks-using-the-crt-library?view=vs-2019
+
+A v druhé řadě trialem pluginu Deleaker pro VS2017 dostupným zde:
+https://marketplace.visualstudio.com/items?itemName=Softanics.Deleaker
+
+CRT knihovna si při mých testech na úniky nestěžovala vůbec, a Deleaker si stěžoval pouze na stovky leaků pocházející z jiných modulů než SDL či zdrojů tohoto projektu.
+Obě knihovny jsem testoval i leaky uměle vytvořenými, které detekovány byly a myslím, resp. doufám že je správa paměti v pořádku.
+
+
+# Zdroje ----------------------------------------------------------------------------------------------
+
+Všechny obrázky jsou mé vlastní tvorby.
+
+Použit Font Silkscreen dostupný zde: https://www.fontsquirrel.com/fonts/Silkscreen
+Prohlášení o licensi je přiloženo v souboru Silkscreen License.txt
+
