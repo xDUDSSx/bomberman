@@ -1,7 +1,10 @@
 # Bomberman game
 ## A clone game written in C++ and SDL2
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 The game is a basic implementation of a bomberman arena where players or computers play against each other. The goal of the game is to eliminate other players or computers. The game has a detailed czech description in the `zadani.txt` file. The code and docs are all in english.
+
+*Originally written as semestral work for the BI-PA2 class at Czech Technical University in Prague.*
 
 # Building on Linux
 On linux you can build the game using the provided Makefile.
