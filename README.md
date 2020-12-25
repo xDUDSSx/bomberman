@@ -3,7 +3,7 @@
 
 The game is a basic implementation of a bomberman arena where players or computers play against each other. The goal of the game is to eliminate other players or computers. The game has a detailed czech description in the `zadani.txt` file. The code and docs are all in english.
 
-# Building in Linux
+# Building on Linux
 On linux you can build the game using the provided Makefile.
 You need to have SDL2 libraries installed, specifically:
 - SDL2 (the core library)
